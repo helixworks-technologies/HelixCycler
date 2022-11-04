@@ -1,7 +1,7 @@
 from tkinter import filedialog as fd
 from tkinter import PhotoImage
 import customtkinter
-from HelixCycler.tc_send_code import *
+from tc_send_code import *
 import csv
 import threading
 
@@ -53,7 +53,7 @@ class App(customtkinter.CTk):
 
         # Widgets on the left frame
         self.title_label = customtkinter.CTkLabel(master=self.title_frame,
-                                              text="ThermoHelix - OT thermocycler app",
+                                              text="HelixCycler - OT thermocycler app",
                                               text_font=("Roboto Medium", -24))  # font name and size in px
         self.title_label.grid(row=0, column=0, pady=10, padx=5, sticky="nesw")
 
