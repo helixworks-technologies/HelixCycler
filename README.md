@@ -10,18 +10,12 @@ Make a copy of this sheet for yourself and create your own thermocycling protoco
 Written and tested in python 3.7.
 
 Prerequisites:
-
-tkinter
-
-csv
-
-threading
-
-pyserial
-
-time
-
-matplotlib
+tkinter  
+csv  
+threading  
+pyserial  
+time    
+matplotlib  
 
 edit the variable 'serial_port' in tc_send_code.py to match the port your port
 before running.
