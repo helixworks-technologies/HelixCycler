@@ -1,7 +1,7 @@
 ## HelixCycler
 An easy to use python application to run the OT thermocycler independently from an Opentrons Robot.
 
-<img src="https://github.com/helixworks-technologies/HelixCycler/blob/main/HelixCycler.png" width=75% height=75%>
+<img src="https://github.com/helixworks-technologies/HelixCycler/blob/main/HelixCycler.png" width=90% height=85%>
 
 
 
