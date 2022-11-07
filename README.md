@@ -65,6 +65,14 @@ At the end of your protocol if you do not call this the thermocycler will hold  
 ### END&GRAPH
 END&GRAPH will end the protocol and draw up the graph of temperature throughout the run. Sometimes it may appear behind the app window.
 
+# Setting the serial port
+
+
+Use the find_serial.py script to get a print out of the ports. Then set the serial_port value in the tc_send_code.py file as the port value given for the Opentrons Thermocycler. 
+  
+  
+On Windows it is formatted as COM(port number).  
+On Linux or Mac it may look more like a path /dev/ttyACM(number).  
 
 
 
