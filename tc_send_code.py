@@ -5,8 +5,9 @@ import csv
 import sys
 
 
+serial_port = "COM3"
 
-port = serial.Serial("COM3", baudrate=115200, timeout=40)
+port = serial.Serial(serial_port, baudrate=115200, timeout=40)
 update_sec = 0.05
 
 commands = {'open_lid': "\r\nM126",
@@ -19,6 +20,12 @@ commands = {'open_lid': "\r\nM126",
             "get_plate_temp": "\r\nM105",
             "set_ramp_rate": "\r\nM566",
             "deactivate_all": "\r\nM18",
+            "deactivate_heating": "\r\nM106",
+            "set_shake_speed": "\r\nM3",
+            "get_shake_speed": "\r\nM123",
+            "deactivate_shake": "\r\nG28",
+            'open_latch': '\r\nM242',
+            'close_latch': '\r\nM243',
             "deactivate_lid": "\r\nM108",
             "deactivate_block": "\r\nM14",
             "device_info": "\r\nM115",
@@ -163,9 +170,22 @@ def set_plate_temperature(target, time=None, well_vol=None):
     command("set_plate_temp", temp_string + time_string + vol_string)
 
 
-#def incubate()
+
+def deactivate_shaker():
+    command('deactivate_shake')
+    command('deactivate_heating')
 
 
+def set_shake_speed(target):
+    command("set_shake_speed", ' S'+target)
+    print(target)
+
+def open_latch():
+    command('open_latch')
+
+
+def close_latch():
+    command('close_latch')
 
 def deactivate_all():
     command('deactivate_all')
@@ -200,6 +220,9 @@ def create_graph(graph):
     plt.ylim(-20, 120)
     plt.legend()
     plt.show()
+    wm = plt.get_current_fig_manager()
+    wm.window.attributes('-topmost', 1)
+    wm.window.attributes('-topmost', 0)
 
 
 
