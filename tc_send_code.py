@@ -3,6 +3,7 @@ import time
 import matplotlib.pyplot as plt
 import csv
 import sys
+import datetime
 
 
 serial_port = "COM3"
@@ -208,11 +209,11 @@ def plot_line(dictionary, ind, line_name):
 
 
 # plot the graph lines
-def create_graph(graph):
+def create_graph(graph, title):
     plot_line(graph, 1, 'Block_temp')
     plot_line(graph, 0, 'Lid_temp')
 
-    plt.title('PCR Temperature')
+    plt.title(title + f' - {datetime.datetime.now().replace(second=0, microsecond=0)}')
     plt.ylabel('Temperature - °C')
     plt.xlabel('Time - minutes')
     plt.ylim(-20, 120)
@@ -303,7 +304,7 @@ def protocol_dict(infile):
     return protocol
 
 
-def run_protocol(prot_dict, step_label, lid_temp_label, plate_temp_label, step_time_label):
+def run_protocol(prot_dict, step_label, lid_temp_label, plate_temp_label, step_time_label, experiment_title):
     temp_graph = {}
     strt_time = time.time()
     for stage in prot_dict:
@@ -318,7 +319,7 @@ def run_protocol(prot_dict, step_label, lid_temp_label, plate_temp_label, step_t
                     deactivate_all()
 
                 elif step[0] == 'END&GRAPH':
-                    create_graph(temp_graph)
+                    create_graph(temp_graph, experiment_title)
                     while True:
 
                         lid_temp = get_lid_temperature()
@@ -331,4 +332,5 @@ def run_protocol(prot_dict, step_label, lid_temp_label, plate_temp_label, step_t
                         time.sleep(update_sec)
 
                 else:
-                    incubation(lid_temp_label, plate_temp_label, step_time_label, strt_time, temp_graph, step[0], step[1], step[2])
+                    incubation(lid_temp_label, plate_temp_label, step_time_label, strt_time, temp_graph, step[0],
+                               step[1], step[2])
