@@ -57,6 +57,15 @@ class App(customtkinter.CTk):
                                               text_font=("Roboto Medium", -24))  # font name and size in px
         self.title_label.grid(row=0, column=0, pady=10, padx=5, sticky="nesw")
 
+        self.open_lid_button = customtkinter.CTkButton(master=self.title_frame,
+                                              text="Open Lid",
+                                              text_font=("Roboto Medium", -24), command=self.opn_lid)
+        self.open_lid_button.grid(row=0, column=1, pady=10, padx=5, sticky="nesw")
+        self.open_lid_button = customtkinter.CTkButton(master=self.title_frame,
+                                              text="Close Lid", fg_color='red',
+                                              text_font=("Roboto Medium", -24), command=self.cls_lid)
+        self.open_lid_button.grid(row=1, column=1, pady=10, padx=5, sticky="nesw")
+
         # ============ Preset Row  ============
 
         # configure grid layout (1x2) left col for temp presets, right for deactivate button
@@ -375,6 +384,11 @@ class App(customtkinter.CTk):
         self.stop_button.destroy()
         self.cancel_button.destroy()
 
+    def opn_lid(self):
+        open_lid()
+
+    def cls_lid(self):
+        close_lid()
 
     def on_closing(self, event=0):
         self.destroy()

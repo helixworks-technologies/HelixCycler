@@ -48,28 +48,26 @@ def response():
 
 def open_lid():
     command('open_lid')
-    port_readline = response()
+    '''port_readline = response()
     while port_readline != "Lid:open\r\n":
         command('get_lid_status')
         port_readline = response()
         time.sleep(0.1)
 
     port.reset_output_buffer()
-    time.sleep(1)
+    time.sleep(1)'''
 
 
 def close_lid():
     command('close_lid')
-    port_readline = response()
+    '''port_readline = response()
     while port_readline != "Lid:closed\r\n":
         command('get_lid_status')
         port_readline = str(port.readline().decode('utf-8'))
         time.sleep(0.2)
-        print("lid is still closing")
-    print("lid is closed")
     port.reset_input_buffer()
     port.reset_output_buffer()
-    time.sleep(1)
+    time.sleep(1)'''
 
 
 def get_lid_temperature():
