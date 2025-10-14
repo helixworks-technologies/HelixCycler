@@ -1,0 +1,10 @@
+,Number of cycles,Plate Temp (°C),Time (seconds),Set Lid Temp (optional)
+CYCLES,1,,,
+STEP,,98,30,
+CYCLES,30,,,
+STEP,,98,25,
+STEP,,65,10,
+STEP,,72,15,
+CYCLES,1,,,
+STEP,,10,5,
+END&GRAPH,,,,
