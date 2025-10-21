@@ -20,9 +20,30 @@ matplotlib
 
 # Running the Thermocycler
 
-Before running the helixcycler.py app, edit the variable 'serial_port' in tc_send_code.py to match the port your port before running.  
+**1. Install Prerequisites:**
+Install the required python libraries using pip:
 
-Once connected, all that is required to run a protocol is importing a csv file.  
+```bash 
+pip install -r requirements.txt
+```
+
+**2. Run the Application:**
+
+```bash 
+python helixcycler.py
+```
+*(Or `python helixshaker.py` for the heater-shaker)*
+
+**3. Connect to the Thermocycler:**
+-   When the app launches, click the **"Refresh"** button to scan for connected devices.
+-   Select the correct Opentrons serial port from the **dropdown menu**.
+    -   On **Windows**, this looks like `COM(number)`.
+    -   On **Linux** or **Mac**, this looks like `/dev/ttyACM(number)` or `/dev/cu.usbmodem(number)`.
+-   Click the **"Connect"** button. The status label should turn green and read "Connected".
+-   All controls are now enabled.
+
+Once connected, all that is required to run a protocol is importing a csv file.
+... 
 ## Presets
 You can stablize the Thermocyclers lid and plate temperature before running an experiment.  
 You may deactivate these presets 
@@ -64,16 +85,6 @@ At the end of your protocol if you do not call this the thermocycler will hold  
 
 ### END&GRAPH
 END&GRAPH will end the protocol and draw up the graph of temperature throughout the run. Sometimes it may appear behind the app window.
-
-# Setting the serial port
-
-
-Use the find_serial.py script to get a print out of the ports. Then set the serial_port value in the tc_send_code.py file as the port value given for the Opentrons Thermocycler. 
-  
-  
-On Windows it is formatted as COM(port number).  
-On Linux or Mac it may look more like a path /dev/ttyACM(number).  
-
 
 
 
