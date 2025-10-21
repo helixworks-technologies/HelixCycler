@@ -1,0 +1,10 @@
+customtkinter
+pyserial
+matplotlib
+tkinter   
+threading  
+csv  
+time    
+matplotlib
+pandas
+numpy
