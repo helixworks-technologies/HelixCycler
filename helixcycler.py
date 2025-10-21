@@ -1,8 +1,8 @@
 from tkinter import filedialog as fd
 from tkinter import PhotoImage
 import customtkinter
-from tc_send_code import HardwareController  # <-- Import class
-from protocol_manager import run_protocol, protocol_dict # <-- Import logic
+from tc_send_code import HardwareController 
+from protocol_manager import run_protocol, protocol_dict 
 import csv
 import threading
 import pathlib  # <-- For cross-platform paths
