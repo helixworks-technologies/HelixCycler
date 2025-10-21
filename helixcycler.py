@@ -1,8 +1,8 @@
 from tkinter import filedialog as fd
 from tkinter import PhotoImage
 import customtkinter
-from tc_send_code import HardwareController 
-from protocol_manager import run_protocol, protocol_dict 
+from tc_send_code import HardwareController  # <-- Import class
+from protocol_manager import run_protocol, protocol_dict # <-- Import logic
 import csv
 import threading
 import pathlib  # <-- For cross-platform paths
@@ -40,7 +40,9 @@ class App(customtkinter.CTk):
         # --- App state ---
         self.controller = HardwareController() # Controller instance
         self.protocol_thread = None
+        self.emergency_stop_event = threading.Event() # <-- New event for emergency stop
         self.tc_protocol = {}
+        self.param_frame_left = None # Will hold the setup/run frame
 
         # ============ create frames ============
         self.grid_columnconfigure(0, weight=1)
@@ -97,7 +99,6 @@ class App(customtkinter.CTk):
 
 
         # ============ Preset Row ============
-        # ... (rest of preset_frame layout is unchanged) ...
         self.preset_frame.grid_columnconfigure(0, weight=4)
         self.preset_frame.grid_columnconfigure(1, weight=3)
         self.preset_frame.grid_rowconfigure(0, weight=1)
@@ -121,8 +122,12 @@ class App(customtkinter.CTk):
         self.plate_button.grid(row=3, column=1, columnspan=1, rowspan=2, pady=0, padx=5, sticky="n")
         self.lid_button = customtkinter.CTkButton(master=self.preset_frame_left, text='Set Lid Temp', state="disabled", command=self.set_lid_temp)
         self.lid_button.grid(row=3, column=0, columnspan=1, rowspan=1, pady=0, padx=5, sticky="n")
-        self.deactivate_button = customtkinter.CTkButton(master=self.preset_frame_left, width=250, height=35, text='Deactivate all', fg_color='dark red', state="disabled", command=self.deactivate_all)
-        self.deactivate_button.grid(row=2, column=2, columnspan=1, rowspan=1, pady=10, padx=5, sticky="n")
+        
+        # --- This is the main "Deactivate" for presets ---
+        self.deactivate_presets_button = customtkinter.CTkButton(master=self.preset_frame_left, width=250, height=35, 
+                                                                 text='Deactivate all', fg_color='blue', # Changed color
+                                                                 state="disabled", command=self.deactivate_all_presets)
+        self.deactivate_presets_button.grid(row=2, column=2, columnspan=1, rowspan=1, pady=10, padx=5, sticky="n")
 
         self.preset_frame_right = customtkinter.CTkFrame(master=self.preset_frame)
         self.preset_frame_right.grid(row=0, column=1, sticky="nsew", padx=5, pady=10)
@@ -138,55 +143,72 @@ class App(customtkinter.CTk):
         self.fr_plate_value_label.grid(row=4, column=0, sticky="n", padx=5, pady=0)
 
         # ============ Parameter frame ============
-        # ... (param_frame layout is unchanged) ...
         self.param_frame.grid_columnconfigure(0, weight=2)
         self.param_frame.grid_columnconfigure(1, weight=1)
         self.param_frame.grid_rowconfigure(0, weight=1)
-        self.param_frame_left = customtkinter.CTkFrame(master=self.param_frame)
-        self.param_frame_left.grid(row=0, column=0, sticky="nswe", padx=5, pady=10)
-        self.param_frame_left.rowconfigure((0, 1, 2, 3, 4), weight=1)
-        self.param_frame_left.columnconfigure((0, 1), weight=1)
+        
         self.param_frame_right = customtkinter.CTkFrame(master=self.param_frame)
         self.param_frame_right.grid(row=0, column=1, sticky="nswe", padx=5, pady=10)
         self.param_frame_right.rowconfigure(0, weight=1)
         self.param_frame_right.rowconfigure(1, weight=25)
         self.param_frame_right.columnconfigure(0, weight=1)
-        self.param_left_title = customtkinter.CTkLabel(master=self.param_frame_left, text="Import Protocol CSV file", font=("Roboto Medium", -20), text_color='White')
-        self.param_left_title.grid(row=0, column=0, columnspan=2, sticky="nswe", padx=5, pady=10)
-        self.path_label = customtkinter.CTkLabel(master=self.param_frame_left, text="", font=("Roboto Medium", -13), text_color='White')
-        self.path_label.grid(row=1, column=1, columnspan=1, sticky="ew", padx=5, pady=10)
-        self.experiment_name_label = customtkinter.CTkEntry(master=self.param_frame_left, placeholder_text='Experiment Name', font=("Roboto Medium", -13), text_color='White')
-        self.experiment_name_label.grid(row=1, column=0, columnspan=1, sticky="ew", padx=5, pady=10)
-        self.experiment_name_label.bind("<KeyRelease>", self.run_ready_check)
-        self.import_button = customtkinter.CTkButton(master=self.param_frame_left, text="Import", font=("Roboto Medium", -20), text_color='White', width=150, command=self.select_file)
-        self.import_button.grid(row=2, column=0, columnspan=2, sticky="n", padx=5, pady=5)
-        self.run_button = customtkinter.CTkButton(master=self.param_frame_left, text="Run Protocol", font=("Roboto Medium", -20), fg_color='grey', text_color='White', width=250, height=50, state='disabled', command=self.start_run_thread) # <-- Changed command
-        self.run_button.grid(row=3, column=0, columnspan=2, sticky="n", padx=5, pady=5)
+        
         self.param_right_title = customtkinter.CTkLabel(master=self.param_frame_right, text="Protocol info", font=("Roboto Medium", -20), text_color='White')
         self.param_right_title.grid(row=0, column=0, sticky="n", padx=5, pady=0)
+
         self.protocol_label = customtkinter.CTkLabel(master=self.param_frame_right, text='', font=("Roboto Medium", -12), text_color='White', justify='left')
         self.protocol_label.grid(row=1, column=0, sticky="n", padx=5, pady=0)
 
-        # --- Protocol running widgets (will be created in self.run) ---
-        self.running_label = None
-        self.current_lid_value_label = None
-        self.current_plate_value_label = None
-        self.step_time_value_label = None
-        self.stop_protocol_button = None
-        self.are_you_sure_label = None
-        self.stop_button = None
+        self.show_setup_frame() # <-- Creates self.param_frame_left
+        
+        # --- Widgets for "Are you sure" dialogs ---
+        self.dialog_label = None
+        self.confirm_button = None
         self.cancel_button = None
 
-    # --- New Connection Methods ---
+
+    def show_setup_frame(self):
+        """Creates or recreates the protocol setup UI (left side of param_frame)."""
+        
+        if self.param_frame_left:
+             self.param_frame_left.destroy()
+
+        # --- Clear any leftover dialogs ---
+        self.cancel_dialog() 
+
+        self.param_frame_left = customtkinter.CTkFrame(master=self.param_frame)
+        self.param_frame_left.grid(row=0, column=0, sticky="nswe", padx=5, pady=10)
+        self.param_frame_left.rowconfigure((0, 1, 2, 3, 4), weight=1)
+        self.param_frame_left.columnconfigure((0, 1), weight=1)
+
+        self.param_left_title = customtkinter.CTkLabel(master=self.param_frame_left, text="Import Protocol CSV file", font=("Roboto Medium", -20), text_color='White')
+        self.param_left_title.grid(row=0, column=0, columnspan=2, sticky="nswe", padx=5, pady=10)
+        
+        self.path_label = customtkinter.CTkLabel(master=self.param_frame_left, text="", font=("Roboto Medium", -13), text_color='White')
+        self.path_label.grid(row=1, column=1, columnspan=1, sticky="ew", padx=5, pady=10)
+        
+        self.experiment_name_label = customtkinter.CTkEntry(master=self.param_frame_left, placeholder_text='Experiment Name', font=("Roboto Medium", -13), text_color='White')
+        self.experiment_name_label.grid(row=1, column=0, columnspan=1, sticky="ew", padx=5, pady=10)
+        self.experiment_name_label.bind("<KeyRelease>", self.run_ready_check)
+        
+        self.import_button = customtkinter.CTkButton(master=self.param_frame_left, text="Import", font=("Roboto Medium", -20), text_color='White', width=150, command=self.select_file)
+        self.import_button.grid(row=2, column=0, columnspan=2, sticky="n", padx=5, pady=5)
+        
+        self.run_button = customtkinter.CTkButton(master=self.param_frame_left, text="Run Protocol", font=("Roboto Medium", -20), fg_color='grey', text_color='White', width=250, height=50, state='disabled', command=self.start_run_thread)
+        self.run_button.grid(row=3, column=0, columnspan=2, sticky="n", padx=5, pady=5)
+        
+        self.run_ready_check()
+        state = "normal" if self.controller.port else "disabled"
+        self.import_button.configure(state=state)
+
+
+    # --- Connection Methods ---
     
     def refresh_ports(self):
-        """Updates the list of available serial ports."""
         self.port_menu.configure(values=self.controller.get_available_ports())
 
     def toggle_connection(self):
-        """Connects to or disconnects from the selected serial port."""
         if self.controller.port:
-            # --- Disconnect ---
             self.controller.disconnect()
             self.connection_status_label.configure(text="Disconnected", text_color="grey")
             self.connect_button.configure(text="Connect", fg_color=customtkinter.ThemeManager.theme["CTkButton"]["fg_color"])
@@ -194,7 +216,6 @@ class App(customtkinter.CTk):
             self.refresh_ports_button.configure(state="normal")
             self.set_controls_state("disabled")
         else:
-            # --- Connect ---
             port_name = self.port_menu.get()
             if port_name == "No Ports Found":
                 self.connection_status_label.configure(text="No Port", text_color="yellow")
@@ -210,32 +231,42 @@ class App(customtkinter.CTk):
                 self.connection_status_label.configure(text="Failed", text_color="red")
                 
     def set_controls_state(self, state):
-        """Enables or disables all hardware controls."""
         self.open_lid_button.configure(state=state)
         self.close_lid_button.configure(state=state)
         self.plate_button.configure(state=state)
         self.lid_button.configure(state=state)
-        self.deactivate_button.configure(state=state)
-        # Re-apply grey color if disabling
+        self.deactivate_presets_button.configure(state=state)
+        
+        if hasattr(self, 'import_button') and self.import_button:
+            self.import_button.configure(state=state)
+        if hasattr(self, 'run_button') and self.run_button:
+            self.run_ready_check() 
+
         if state == "disabled":
-            self.deactivate_button.configure(fg_color='dark red') # Keep color
-            self.close_lid_button.configure(fg_color='red') # Keep color
+            self.deactivate_presets_button.configure(fg_color='blue') 
+            self.close_lid_button.configure(fg_color='red') 
             self.plate_button.configure(fg_color=customtkinter.ThemeManager.theme["CTkButton"]["fg_color"])
             self.lid_button.configure(fg_color=customtkinter.ThemeManager.theme["CTkButton"]["fg_color"])
-        self.run_ready_check() # Check run button state
+
 
     # --- Protocol Run Methods ---
     
     def start_run_thread(self):
-        """Starts the run_protocol function in a new daemon thread."""
-        # Rebuild the run frame
-        self.param_frame_left = customtkinter.CTkFrame(master=self.param_frame)
+        """Creates the 'Running' UI and starts the protocol in a new thread."""
+        
+        if self.param_frame_left:
+             self.param_frame_left.destroy()
+             
+        # --- Clear the stop event flag from any previous run ---
+        self.emergency_stop_event.clear()
+             
+        self.param_frame_left = customtkinter.CTkFrame(master=self.param_frame) 
         self.param_frame_left.grid(row=0, column=0, sticky="nswe", padx=5, pady=10)
-        self.param_frame_left.rowconfigure((0, 1, 2, 3, 4), weight=1)
+        self.param_frame_left.rowconfigure((0, 1, 2, 3, 4, 5), weight=1) # Added a row
         self.param_frame_left.columnconfigure((0, 1, 2, 3), weight=1)
 
-        self.running_label = customtkinter.CTkLabel(master=self.param_frame_left)
-        self.running_label.grid(row=0, column=0, columnspan=3, sticky="n", padx=5, pady=5)
+        self.running_label = customtkinter.CTkLabel(master=self.param_frame_left, text="")
+        self.running_label.grid(row=0, column=0, columnspan=4, sticky="n", padx=5, pady=5)
         self.current_lid_label = customtkinter.CTkLabel(master=self.param_frame_left, text='Current Lid \nTemperature', font=("Roboto Medium", -18), text_color='grey', justify='center')
         self.current_lid_label.grid(row=1, column=0, sticky="n", padx=10, pady=5)
         self.current_lid_value_label = customtkinter.CTkLabel(master=self.param_frame_left, text='', font=("Roboto Medium", -24), text_color='orange', justify='center')
@@ -248,62 +279,123 @@ class App(customtkinter.CTk):
         self.step_time_label.grid(row=1, column=2, sticky="n", padx=10, pady=5)
         self.step_time_value_label = customtkinter.CTkLabel(master=self.param_frame_left, text='', font=("Roboto Medium", -24), text_color='light green', justify='center')
         self.step_time_value_label.grid(row=2, column=2, sticky="n", padx=10, pady=5)
-        self.stop_protocol_button = customtkinter.CTkButton(master=self.param_frame_left, width=250, height=35, text='Stop Protocol', fg_color='dark red', command=self.are_you_sure)
-        self.stop_protocol_button.grid(row=3, column=1, sticky="n", padx=10, pady=5)
-
-        # Disable preset controls during run
-        self.set_controls_state("disabled")
-        self.import_button.configure(state="disabled")
         
-        # Start thread
-        self.protocol_thread = threading.Thread(target=run_protocol, 
-                                                args=(self.controller, self.tc_protocol, self.running_label, 
-                                                      self.current_lid_value_label, self.current_plate_value_label, 
-                                                      self.step_time_value_label, self.experiment_name_label.get()),
-                                                daemon=True) # Daemon=True allows app to exit
+        # --- UPDATED BUTTONS ---
+        self.skip_step_button = customtkinter.CTkButton(master=self.param_frame_left, width=200, height=35, 
+                                                        text='Skip Current Step', fg_color='blue', 
+                                                        command=self.skip_step_are_you_sure)
+        self.skip_step_button.grid(row=3, column=0, columnspan=2, sticky="e", padx=10, pady=5)
+
+        self.emergency_stop_button = customtkinter.CTkButton(master=self.param_frame_left, width=200, height=35, 
+                                                             text='Emergency Stop', fg_color='dark red', 
+                                                             command=self.emergency_stop_are_you_sure)
+        self.emergency_stop_button.grid(row=3, column=2, columnspan=2, sticky="w", padx=10, pady=5)
+
+        self.set_controls_state("disabled")
+        
+        self.protocol_thread = threading.Thread(target=self._run_protocol_wrapper, daemon=True) 
         self.protocol_thread.start()
+
+    def _run_protocol_wrapper(self):
+        """
+        Private wrapper to run the protocol and handle UI cleanup.
+        This function runs in the background thread.
+        """
+        
+        # --- Define thread-safe update functions ---
+        def safe_configure(widget, **kwargs):
+            try:
+                if widget and widget.winfo_exists():
+                    widget.configure(**kwargs)
+            except Exception as e:
+                # This catches errors if the widget is destroyed
+                # during the update (which is fine)
+                print(f"Safe configure error: {e}")
+
+        def update_step_label(text):
+            self.after(0, lambda t=text: safe_configure(self.running_label, text=t, font=("Roboto Medium", -18)))
+
+        def update_lid_label(text):
+            self.after(0, lambda t=text: safe_configure(self.current_lid_value_label, text=t))
+        
+        def update_plate_label(text):
+            self.after(0, lambda t=text: safe_configure(self.current_plate_value_label, text=t))
+            
+        def update_time_label(text):
+            self.after(0, lambda t=text: safe_configure(self.step_time_value_label, text=t))
+
+        try:
+            run_protocol(self.controller, self.tc_protocol, 
+                         update_step_label, update_lid_label, 
+                         update_plate_label, update_time_label, 
+                         self.emergency_stop_event, # <-- Pass the event
+                         self.experiment_name_label.get())
+                         
+        except Exception as e:
+            print(f"Protocol thread encountered an error: {e}")
+        finally:
+            print("Protocol thread finished. Scheduling UI reset.")
+            self.after(100, self._reset_ui_after_run)
+
+    def _reset_ui_after_run(self):
+        """
+        Resets the UI back to the setup screen after a normal finish.
+        This MUST be called from the main thread (e.g., via self.after()).
+        """
+        # Check if the thread is still marked as active
+        if self.protocol_thread is None:
+            print("UI reset skipped; already handled by emergency_stop.")
+            return
+
+        self.protocol_thread = None 
+        self.emergency_stop_event.clear() # Clear event for next run
+        
+        self.fr_plate_value_label.configure(text='°C')
+        self.fr_lid_value_label.configure(text='°C')
+
+        self.show_setup_frame() # Rebuild the setup UI
+        self.set_controls_state("normal")
+        print("UI has been reset after normal run.")
 
     def run_ready_check(self, event=None):
         """Checks if the app is ready to run a protocol."""
+        if not (hasattr(self, 'run_button') and self.run_button):
+            return
+
         is_connected = self.controller.port is not None
         has_protocol = len(self.tc_protocol) > 0
         has_name = len(self.experiment_name_label.get()) > 5
+        is_running = self.protocol_thread and self.protocol_thread.is_alive()
         
-        if is_connected and has_protocol and has_name:
+        if is_connected and has_protocol and has_name and not is_running:
             self.run_button.configure(state='normal', fg_color='dark red')
         else:
             self.run_button.configure(state='disabled', fg_color='grey')
 
     def select_file(self):
-        # ... (This function is largely unchanged) ...
+        # ... (This function is unchanged) ...
         self.wm_attributes('-topmost', 1)
         try:
             file = fd.askopenfile(parent=self, initialdir='')
             if not file:
                 self.wm_attributes('-topmost', 0)
                 return
-                
             txt_name = file.name
-            self.wm_attributes('-topmost', 0) # Return focus
-            
+            self.wm_attributes('-topmost', 0)
             self.path_label.configure(text=txt_name)
             self.tc_protocol = protocol_dict(txt_name)
             self.run_ready_check()
-
             string = ""
             with open(txt_name, 'r') as read_file:
                 csv_read = csv.reader(read_file, delimiter=',')
-                step_count = 1
-                stage_count = 1
+                step_count, stage_count = 1, 1
                 for line in csv_read:
                     if line[0] == 'CYCLES':
                         string += f'\n\n\t\tStage - {stage_count}\nCycles - {line[1]}\nStep    Plate_temp    Time(seconds)    Set Lid Target\n'
-                        step_count = 1
-                        stage_count += 1
+                        step_count, stage_count = 1, stage_count + 1
                     elif line[0] == 'STEP':
                         time_val = line[3] if line[3] else 'Hold'
-                        string += f'  {step_count}                {line[2]}                        {time_val}' \
-                                  f'                                  {line[4]}\n'
+                        string += f'  {step_count}                {line[2]}                        {time_val}                                  {line[4]}\n'
                         step_count += 1
                     elif line[0] == 'DEACTIVATE_ALL':
                         string += f'  {step_count}                                 Deactivate All\n'
@@ -318,39 +410,92 @@ class App(customtkinter.CTk):
             self.tc_protocol = {}
         self.run_ready_check()
 
-    def are_you_sure(self):
-        # ... (This function is unchanged, but self.deactivate_all is now safe) ...
-        self.are_you_sure_label = customtkinter.CTkLabel(master=self.param_frame_left,
-                                                         text='Stop Protocol?\nAre You Sure?',
-                                                         font=("Roboto Medium", -20), width=300,
-                                                         text_color='yellow', justify='center')
-        self.are_you_sure_label.grid(row=3, column=1, sticky="n", padx=10, pady=5)
-        self.stop_button = customtkinter.CTkButton(master=self.param_frame_left, text='STOP',
-                                                   font=("Roboto Medium", -20), fg_color='dark red',
-                                                   text_color='white', command=self.deactivate_all)
-        self.stop_button.grid(row=4, column=1, columnspan=2, sticky="w", padx=20, pady=10)
+    # --- UPDATED "ARE YOU SURE" DIALOGS ---
+
+    def skip_step_are_you_sure(self):
+        """Shows 'Are you sure' dialog for SKIPPING a step."""
+        self.cancel_dialog() # Clear any old ones
+        self.dialog_label = customtkinter.CTkLabel(master=self.param_frame_left,
+                                                     text='Skip Current Step?\nAre You Sure?',
+                                                     font=("Roboto Medium", -20), width=300,
+                                                     text_color='yellow', justify='center')
+        self.dialog_label.grid(row=4, column=0, columnspan=4, sticky="n", padx=10, pady=10)
+        
+        self.confirm_button = customtkinter.CTkButton(master=self.param_frame_left, text='Skip',
+                                                      font=("Roboto Medium", -20), fg_color='blue',
+                                                      text_color='white', command=self.skip_step)
+        self.confirm_button.grid(row=5, column=0, columnspan=2, sticky="e", padx=20, pady=10)
+        
         self.cancel_button = customtkinter.CTkButton(master=self.param_frame_left, text='Cancel',
                                                      font=("Roboto Medium", -20), text_color='white',
-                                                     command=self.cancel)
-        self.cancel_button.grid(row=4, column=0, columnspan=2, sticky="e", padx=20, pady=10)
+                                                     command=self.cancel_dialog)
+        self.cancel_button.grid(row=5, column=2, columnspan=2, sticky="w", padx=20, pady=10)
+
+    def emergency_stop_are_you_sure(self):
+        """Shows 'Are you sure' dialog for EMERGENCY STOP."""
+        self.cancel_dialog() # Clear any old ones
+        self.dialog_label = customtkinter.CTkLabel(master=self.param_frame_left,
+                                                     text='EMERGENCY STOP?\nThis will halt the entire protocol!',
+                                                     font=("Roboto Medium", -20), width=400,
+                                                     text_color='red', justify='center')
+        self.dialog_label.grid(row=4, column=0, columnspan=4, sticky="n", padx=10, pady=10)
+
+        self.confirm_button = customtkinter.CTkButton(master=self.param_frame_left, text='STOP NOW',
+                                                      font=("Roboto Medium", -20), fg_color='dark red',
+                                                      text_color='white', command=self.emergency_stop)
+        self.confirm_button.grid(row=5, column=0, columnspan=2, sticky="e", padx=20, pady=10)
+
+        self.cancel_button = customtkinter.CTkButton(master=self.param_frame_left, text='Cancel',
+                                                     font=("Roboto Medium", -20), text_color='white',
+                                                     command=self.cancel_dialog)
+        self.cancel_button.grid(row=5, column=2, columnspan=2, sticky="w", padx=20, pady=10)
 
     # --- Hardware Control Wrappers ---
     
-    def deactivate_all(self):
+    def deactivate_all_presets(self):
+        """Deactivates presets. This is the 'Deactivate all' button in the preset frame."""
         if self.controller:
             self.controller.deactivate_all()
         self.fr_plate_value_label.configure(text='°C')
         self.fr_lid_value_label.configure(text='°C')
-        # Also kill the protocol thread
-        # Note: This is not perfectly safe, but deactivate_all() will cause
-        # the thread's serial read to fail, which is handled.
-        if self.protocol_thread and self.protocol_thread.is_alive():
-            print("Stopping protocol thread via deactivation.")
-            # Re-enable controls
-            self.set_controls_state("normal")
-            self.import_button.configure(state="normal")
-        if self.are_you_sure_label:
-            self.cancel() # Clean up 'are you sure' widgets
+
+    def skip_step(self):
+        """Command for the 'Skip' button. Just deactivates hardware."""
+        print("Skip Step button pressed. Deactivating all.")
+        if self.controller:
+            self.controller.deactivate_all() # This will trigger the SerialException
+        self.cancel_dialog()
+
+    def emergency_stop(self):
+        """Command for the 'Emergency Stop' button."""
+        print("EMERGENCY STOP button pressed.")
+        # Mark the thread as "None" first
+        self.protocol_thread = None 
+        
+        # Set the event to trigger the exception in the thread
+        self.emergency_stop_event.set() 
+        
+        if self.controller:
+            self.controller.deactivate_all() # Deactivate hardware
+        
+        self.fr_plate_value_label.configure(text='°C')
+        self.fr_lid_value_label.configure(text='°C')
+
+        self.show_setup_frame() # Rebuild the setup UI
+        self.set_controls_state("normal")
+        self.cancel_dialog() # Clean up dialog widgets
+
+    def cancel_dialog(self):
+        """Hides the 'are you sure' dialog widgets."""
+        if self.dialog_label:
+            self.dialog_label.destroy()
+            self.dialog_label = None
+        if self.confirm_button:
+            self.confirm_button.destroy()
+            self.confirm_button = None
+        if self.cancel_button:
+            self.cancel_button.destroy()
+            self.cancel_button = None
 
     def set_plate_temp(self):
         if self.controller:
@@ -364,14 +509,6 @@ class App(customtkinter.CTk):
             self.controller.set_lid_temperature(value)
             self.fr_lid_value_label.configure(text=value + '°C')
 
-    def cancel(self):
-        if self.are_you_sure_label:
-            self.are_you_sure_label.destroy()
-        if self.stop_button:
-            self.stop_button.destroy()
-        if self.cancel_button:
-            self.cancel_button.destroy()
-
     def opn_lid(self):
         if self.controller:
             self.controller.open_lid()
@@ -381,10 +518,12 @@ class App(customtkinter.CTk):
             self.controller.close_lid()
 
     def on_closing(self, event=0):
+        # Set event and deactivate to stop any running threads
+        self.emergency_stop_event.set()
         if self.controller:
+            self.controller.deactivate_all()
             self.controller.disconnect()
         self.destroy()
-
 
 if __name__ == "__main__":
     app = App()
