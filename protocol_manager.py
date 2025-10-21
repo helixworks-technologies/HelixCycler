@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import csv
 import sys
 import datetime
+import serial # <-- IMPORT ADDED
+import threading # <-- IMPORT ADDED
 
 def protocol_dict(infile_path):
     """Parses a CSV protocol file into a dictionary."""
@@ -64,8 +66,13 @@ def create_graph(graph, title):
         except Exception:
             pass # Fails on some platforms, but that's ok
 
-def incubation(controller, lid_label, plate_label, time_label, start_time, graph, plate_temp, inc_time=None, lid_temp=None, well_vol=None, update_sec=0.1):
-    """Manages a single incubation step and updates GUI labels."""
+# --- UPDATED FUNCTION ---
+def incubation(controller, 
+               update_lid_fn, update_plate_fn, update_time_fn, # <-- Callback functions
+               emergency_stop_event, # <-- New event
+               start_time, graph, plate_temp, 
+               inc_time=None, lid_temp=None, well_vol=None, update_sec=0.1):
+    """Manages a single incubation step and updates GUI labels via callbacks."""
     if lid_temp is not None:
         controller.set_lid_temperature(lid_temp)
 
@@ -74,43 +81,64 @@ def incubation(controller, lid_label, plate_label, time_label, start_time, graph
         controller.set_plate_temperature(plate_temp, inc_time, well_vol)
         try:
             while float(time_remaining) > 0.001:
+                # --- Emergency Stop Check ---
+                if emergency_stop_event.is_set():
+                    raise Exception("Emergency Stop Triggered")
+
                 current_time = (time.time() - start_time) / 60
-                current_lid_temp = controller.get_lid_temperature()
-                plate_info = controller.get_plate_info()
+                current_lid_temp = controller.get_lid_temperature() 
+                plate_info = controller.get_plate_info() 
                 current_plate_temp, time_remaining = plate_info[0], plate_info[1]
 
-                lid_label.configure(text=f'{current_lid_temp} °C')
-                plate_label.configure(text=f'{current_plate_temp} °C')
-                time_label.configure(text=f'{time_remaining} secs')
+                update_lid_fn(f'{current_lid_temp} °C')
+                update_plate_fn(f'{current_plate_temp} °C')
+                update_time_fn(f'{time_remaining} secs')
 
                 graph[current_time] = [current_lid_temp, current_plate_temp, inc_time]
                 time.sleep(update_sec)
-        except (ValueError, TypeError):
-            print('Protocol stopped or device disconnected.')
-            # Allow thread to exit
-            return
+        except serial.SerialException as e:
+            # --- This is the "Skip Step" logic ---
+            print(f'Step Skipped: SerialException ({e})')
+            # Breaking loop skips to the next step
+        except (ValueError, TypeError) as e: 
+            print(f'Protocol step value error: {e}')
+            # This is a real error, so we re-raise it to stop the protocol
+            raise
     else:
         # This is a 'hold' step
         controller.set_plate_temperature(plate_temp)
         try:
-            while True: # Will be interrupted when the thread is stopped
-                current_lid_temp = controller.get_lid_temperature()
-                plate_info = controller.get_plate_info()
+            while True: 
+                # --- Emergency Stop Check ---
+                if emergency_stop_event.is_set():
+                    raise Exception("Emergency Stop Triggered")
+                    
+                current_lid_temp = controller.get_lid_temperature() 
+                plate_info = controller.get_plate_info() 
                 current_plate_temp, time_remaining = plate_info[0], plate_info[1]
 
-                lid_label.configure(text=f'{current_lid_temp} °C')
-                plate_label.configure(text=f'{current_plate_temp} °C')
-                time_label.configure(text=f'{time_remaining} secs')
+                update_lid_fn(f'{current_lid_temp} °C')
+                update_plate_fn(f'{current_plate_temp} °C')
+                update_time_fn(f'{time_remaining} secs')
+                
                 time.sleep(update_sec)
-        except (ValueError, TypeError):
-            print('Protocol stopped or device disconnected.')
-            return
+        except serial.SerialException as e:
+            # --- This is the "Skip Step" logic ---
+            print(f'Step Skipped: SerialException ({e})')
+            # Breaking loop skips to the next step
+        except (ValueError, TypeError) as e: 
+            print(f'Protocol hold error: {e}')
+            raise 
 
-def run_protocol(controller, prot_dict, step_label, lid_temp_label, plate_temp_label, step_time_label, experiment_title, update_sec=0.1):
+# --- UPDATED FUNCTION ---
+def run_protocol(controller, prot_dict, 
+                 update_step_fn, update_lid_fn, update_plate_fn, update_time_fn, # <-- Callbacks
+                 emergency_stop_event, # <-- New event
+                 experiment_title, update_sec=0.1):
     """Runs the full protocol, step by step."""
     if not controller or not controller.port:
         print("Error: Controller not connected.")
-        step_label.configure(text="Error: Not Connected")
+        update_step_fn("Error: Not Connected") 
         return
 
     temp_graph = {}
@@ -118,25 +146,46 @@ def run_protocol(controller, prot_dict, step_label, lid_temp_label, plate_temp_l
     
     try:
         for stage in prot_dict:
+            # --- Emergency Stop Check ---
+            if emergency_stop_event.is_set():
+                raise Exception("Emergency Stop Triggered")
+                
             cycles = prot_dict[stage][0]
             for i in range(cycles):
+                # --- Emergency Stop Check ---
+                if emergency_stop_event.is_set():
+                    raise Exception("Emergency Stop Triggered")
+                    
                 for step_counter in range(1, len(prot_dict[stage])):
-                    step_label.configure(text=f'Stage\t\tCycle\t\tStep\n{stage}\t\t{i+1}\t\t{step_counter}', font=("Roboto Medium", -18))
+                    # --- Emergency Stop Check ---
+                    if emergency_stop_event.is_set():
+                        raise Exception("Emergency Stop Triggered")
+
+                    step_text = f'Stage\t\tCycle\t\tStep\n{stage}\t\t{i+1}\t\t{step_counter}'
+                    update_step_fn(step_text)
                     print(f'Stage-{stage}\t\tCycle-{i+1}\t\tStep-{step_counter}')
+                    
                     step = (prot_dict[stage][step_counter])
 
                     if step[0] == 'DEACTIVATE_ALL':
                         controller.deactivate_all()
                     elif step[0] == 'END&GRAPH':
                         create_graph(temp_graph, experiment_title)
-                        # Hold at last temp
-                        incubation(controller, lid_temp_label, plate_temp_label, step_time_label, strt_time, temp_graph, 
-                                   plate_temp=temp_graph[max(temp_graph.keys())][1], # Get last plate temp
+                        incubation(controller, 
+                                   update_lid_fn, update_plate_fn, update_time_fn, 
+                                   emergency_stop_event, # <-- Pass event
+                                   strt_time, temp_graph, 
+                                   plate_temp=temp_graph[max(temp_graph.keys())][1], 
                                    update_sec=update_sec) 
                     else:
-                        incubation(controller, lid_temp_label, plate_temp_label, step_time_label, strt_time, temp_graph, 
-                                   plate_temp=step[0], inc_time=step[1], lid_temp=step[2], update_sec=update_sec)
+                        incubation(controller, 
+                                   update_lid_fn, update_plate_fn, update_time_fn, 
+                                   emergency_stop_event, # <-- Pass event
+                                   strt_time, temp_graph, 
+                                   plate_temp=step[0], inc_time=step[1], lid_temp=step[2], 
+                                   update_sec=update_sec)
     except Exception as e:
-        print(f"Protocol error or manually stopped: {e}")
+        # This will now *only* catch the Emergency Stop or real ValueErrors
+        print(f"Protocol run stopped: {e}") 
     finally:
         print("Protocol finished or stopped.")
