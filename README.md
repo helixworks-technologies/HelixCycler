@@ -26,34 +26,57 @@ An easy to use python application to run the OT thermocycler independently from 
 
 ---
 
-## Running the Application
+---
+
+## Running the Application (Recommended Method: Launcher)
+
+The launcher allows you to manage connections to multiple OT thermocyclers connected to the same computer.
+
+1.  **Navigate to the Directory:**
+    Open your terminal or command prompt and navigate to the directory containing the `launcher.py` file.
+2.  **Run the Launcher Script:**
+    ```bash
+    python launcher.py
+    ```
+3.  **Using the Launcher:**
+    * A small window titled "HelixCycler Launcher" will appear.
+    * Click **"Refresh Ports"** to scan for connected thermocyclers.
+    * The listbox will show available serial ports. Ports already being controlled by a HelixCycler window will show "(Running)".
+    * **Click** on an available port in the list to select it. The selected line will be highlighted.
+    * Click **"Launch Control Window"**. This will open a new, dedicated HelixCycler window for the selected device, automatically connecting to it.
+    * You can repeat this process to launch control windows for multiple connected thermocyclers.
+    * Closing a control window does *not* close the launcher. Closing the launcher does *not* close any running control windows.
+
+---
+
+## Running the Application (Alternative Method: Direct Launch)
+
+You can also launch the control window directly for a single thermocycler. This is useful if you only have one device or prefer manual connection.
 
 1.  **Navigate to the Directory:**
     Open your terminal or command prompt and navigate to the directory containing the `helixcycler.py` file.
-2.  **Run the Script:**
+2.  **Run the HelixCycler Script:**
     ```bash
     python helixcycler.py
     ```
-This should open a GUI that looks like this:
+3.  **Connect Manually:**
+    * When the app launches, click the **"Refresh"** button.
+    * Select the correct serial port from the dropdown menu.
+    * On **Windows**, this typically looks like `COM<number>`.
+    * On **Linux** or **Mac**, this looks like `/dev/ttyACM<number>` or `/dev/cu.usbmodem<number>`.
+    * Click the **"Connect"** button. The status label should turn green and read "Connected".
+    * To disconnect, click the **"Disconnect"** button (the same button, its text changes).
+
+---
+
+## User Interface Overview (Control Window)
+
+The Control Window GUI looks like this:
 
 <img src="https://github.com/helixworks-technologies/HelixCycler/blob/main/HelixCycler_GUI.png" width=90% height=85%>
 
----
 
-## Connecting to the Thermocycler
-
-1.  **Refresh Ports:** When the app launches, click the **"Refresh"** button to scan for connected devices.
-2.  **Select Port:** Choose the correct serial port for your Opentrons Thermocycler from the dropdown menu.
-    * On **Windows**, this typically looks like `COM<number>`.
-    * On **Linux** or **Mac**, this looks like `/dev/ttyACM<number>` or `/dev/cu.usbmodem<number>`.
-3.  **Connect:** Click the **"Connect"** button. The status label should turn green and read "Connected". All device controls will become active.
-4.  **Disconnect:** To disconnect, click the **"Disconnect"** button (the same button, its text changes).
-
----
-
-## User Interface Overview
-
-The application window is divided into several sections:
+This window is divided into several sections:
 
 ### 1. Lid Controls & Connection
 
