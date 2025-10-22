@@ -89,7 +89,6 @@ class HardwareController:
     def close_lid(self):
         self._command('close_lid')
 
-    # --- UPDATED FUNCTION ---
     def get_lid_temperature(self):
         self._command('get_lid_temp')
         port_readline = self._response()
@@ -106,16 +105,13 @@ class HardwareController:
                     if not port_readline:
                         raise serial.SerialException("Device read failed (lid temp).")
             except (IndexError, ValueError, TypeError):
-                # --- THIS BLOCK IS THE FIX ---
-                # If we got bad data, re-send the command before reading again
                 self._command('get_lid_temp') 
                 port_readline = self._response()
                 if not port_readline:
                     raise serial.SerialException("Device read failed (lid temp retry).")
-                continue # Try the loop again with the new data
+                continue 
         return lid_temp
 
-    # --- UPDATED FUNCTION ---
     def get_plate_info(self):
         self._command('get_plate_temp')
         port_readline = self._response()
@@ -133,13 +129,11 @@ class HardwareController:
                     if not port_readline:
                         raise serial.SerialException("Device read failed (plate info).")
             except (IndexError, ValueError, TypeError):
-                # --- THIS BLOCK IS THE FIX ---
-                # If we got bad data, re-send the command before reading again
                 self._command('get_plate_temp')
                 port_readline = self._response()
                 if not port_readline:
                     raise serial.SerialException("Device read failed (plate info retry).")
-                continue # Try the loop again with the new data
+                continue 
         return [plate_temp, seconds_left]
 
     def set_lid_temperature(self, temp):
