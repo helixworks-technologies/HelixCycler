@@ -1,18 +1,4 @@
 # HelixCycler
-<<<<<<< Updated upstream
-
-An easy-to-use Python application to run an Opentrons Thermocycler independently from an Opentrons Robot.
-
-<img src="https://github.com/helixworks-technologies/HelixCycler/blob/main/HelixCycler.png" width=90% height=85%>
-
-<img src="HelixCycler.png" width="90%" alt="HelixCycler App Screenshot">
-
-## Prerequisites
-
-* **Python:** Version 3.7 or higher recommended.
-* **Libraries:** The application relies on several Python libraries.
-
-=======
 An easy to use python application to run the OT thermocycler independently from an Opentrons Robot.
 
 <img src="https://github.com/helixworks-technologies/HelixCycler/blob/main/HelixCycler.png" width=90% height=85%>
@@ -24,34 +10,22 @@ An easy to use python application to run the OT thermocycler independently from 
 
 ---
 
->>>>>>> Stashed changes
 ## Installation
 
 1.  **Clone the Repository:**
     ```bash
-<<<<<<< Updated upstream
-    git clone <your-repository-url>
-    cd HelixCycler
-    ```
-2.  **Install Dependencies:**
-    Make sure you have `pip` installed. Then, run the following command in your terminal within the `HelixCycler` directory:
-=======
     git clone https://github.com/helixworks-technologies/HelixCycler.git
     cd HelixCycler-main
     ```
 2.  **Install Dependencies:**
     Make sure you have `pip` installed. Then, run the following command in your terminal within the `HelixCycler-main` directory:
->>>>>>> Stashed changes
     ```bash
     pip install -r requirements.txt
     ```
     This will install `customtkinter`, `pyserial`, and `matplotlib`.
 
-<<<<<<< Updated upstream
-=======
 ---
 
->>>>>>> Stashed changes
 ## Running the Application
 
 1.  **Navigate to the Directory:**
@@ -60,14 +34,11 @@ An easy to use python application to run the OT thermocycler independently from 
     ```bash
     python helixcycler.py
     ```
-<<<<<<< Updated upstream
-=======
 This should open a GUI that looks like this:
 
 <img src="https://github.com/helixworks-technologies/HelixCycler/blob/main/HelixCycler_GUI.png" width=90% height=85%>
 
 ---
->>>>>>> Stashed changes
 
 ## Connecting to the Thermocycler
 
@@ -78,29 +49,17 @@ This should open a GUI that looks like this:
 3.  **Connect:** Click the **"Connect"** button. The status label should turn green and read "Connected". All device controls will become active.
 4.  **Disconnect:** To disconnect, click the **"Disconnect"** button (the same button, its text changes).
 
-<<<<<<< Updated upstream
-=======
 ---
 
->>>>>>> Stashed changes
 ## User Interface Overview
 
 The application window is divided into several sections:
 
-<<<<<<< Updated upstream
-### 1. Title Bar & Connection
-
-* **Title:** Displays the application name.
-* **Lid Controls:**
-    * **Open Lid:** Opens the thermocycler lid. (Enabled when connected).
-    * **Close Lid:** Closes the thermocycler lid. (Enabled when connected).
-=======
 ### 1. Lid Controls & Connection
 
 * **Lid Controls:**
     * **Open Lid:** Opens the thermocycler lid (Enabled when connected).
     * **Close Lid:** Closes the thermocycler lid (Enabled when connected).
->>>>>>> Stashed changes
 * **Connection Controls:**
     * **Serial Port Dropdown:** Lists available serial ports.
     * **Refresh:** Rescans for available serial ports.
@@ -112,11 +71,7 @@ The application window is divided into several sections:
 This section allows manual control and provides live temperature feedback when connected and idle.
 
 * **Preset Temperatures (Left Side):**
-<<<<<<< Updated upstream
-    * **Set Lid Temperature °C:** Enter a target temperature (37°C - 110°C) and click **"Set Lid Temp"**. The lid heats passively and cools ambiently (no active cooling).
-=======
     * **Set Lid Temperature °C:** Enter a target temperature (37°C - 105°C) and click **"Set Lid Temp"**. The lid heats passively and cools ambiently (no active cooling).
->>>>>>> Stashed changes
     * **Set Plate Temperature °C:** Enter a target temperature (4°C - 99°C) and click **"Set Plate Temp"**.
     * **Deactivate all:** Stops heating/cooling for both the lid and the plate.
 * **Actual Temperatures (Right Side):**
@@ -141,11 +96,8 @@ This section manages loading and running automated protocols from CSV files.
 * **Protocol Info (Right Side):**
     * Displays a formatted summary of the steps loaded from the imported CSV file.
 
-<<<<<<< Updated upstream
-=======
 ---
 
->>>>>>> Stashed changes
 ## CSV Protocol Format
 
 Protocols are defined in `.csv` (Comma Separated Values) files. You can create these using spreadsheet software (like Google Sheets, Excel, LibreOffice Calc) and exporting as `.csv`.
@@ -168,11 +120,7 @@ Protocols are defined in `.csv` (Comma Separated Values) files. You can create t
         * Column B: *(Leave Blank)*
         * Column C: Plate Target Temperature (°C) (e.g., `95`, `60`, `4`). **Required.**
         * Column D: Hold Time (seconds) (e.g., `30`, `60`, `180`). Leave blank for infinite hold (until the next step or end of protocol).
-<<<<<<< Updated upstream
-        * Column E: Lid Target Temperature (°C) (e.g., `105`). Leave blank to keep the lid at its current target temperature. *Note: It's generally recommended to set the lid temperature once at the beginning or via presets, as it heats/cools slowly.*
-=======
         * Column E: Lid Target Temperature (°C) (e.g., `105`). Leave blank to keep the lid at its current target temperature. *Note: It's generally recommended to set the lid temperature once at the beginning or via presets, as it heats/cools slowly*.
->>>>>>> Stashed changes
 * **`DEACTIVATE_ALL`**
     * **Purpose:** Turns off heating/cooling for both the plate and the lid. Usually placed near the end of the protocol.
     * **Format:**
@@ -189,11 +137,6 @@ Protocols are defined in `.csv` (Comma Separated Values) files. You can create t
 * Every protocol stage **must** start with a `CYCLES` command.
 * Save your spreadsheet as a `.csv` file before importing.
 * The order is important: `CYCLES` -> one or more `STEP`s -> (optional `DEACTIVATE_ALL`) -> (optional `END&GRAPH`). You can have multiple `CYCLES` stages.
-<<<<<<< Updated upstream
-
-
-=======
->>>>>>> Stashed changes
 
 
 
