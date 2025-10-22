@@ -1,3 +1,4 @@
+import tkinter as tk
 from tkinter import filedialog as fd
 from tkinter import PhotoImage
 import customtkinter
@@ -6,7 +7,8 @@ from protocol_manager import run_protocol, protocol_dict
 import csv
 import threading
 import pathlib
-import sys # <-- Import sys to read command-line arguments
+import sys
+import platform
 
 # --- Setup base directory for assets ---
 BASE_DIR = pathlib.Path(__file__).parent
@@ -35,8 +37,27 @@ class App(customtkinter.CTk):
             window_title = f"HelixCycler - {self.auto_connect_port}"
         self.title(window_title)
 
-        self.geometry(f"{App.WIDTH}x{App.HEIGHT}")
-        self.state('zoomed')
+        # Platform-specific maximizing
+        os_name = platform.system()
+        if os_name == "Darwin": # Darwin is the system name for macOS
+            try:
+                self.state('zoomed')
+            except tk.TclError:
+                print("Could not set window to zoomed state on macOS.")
+        elif os_name == "Linux" or os_name == "Windows":
+            try:
+                # Try the attributes method first (works on Windows, some Linux)
+                self.attributes('-zoomed', True)
+            except tk.TclError:
+                try:
+                    # Fallback for older Tkinter versions or other Linux environments
+                    self.wm_attributes('-zoomed', True)
+                except tk.TclError:
+                    # If both fail, just proceed without maximizing initially
+                    print(f"Could not set window to zoomed state on {os_name}.")
+        else:
+             # Optional: Handle other OS or just skip maximizing
+             print(f"Unsupported OS ({os_name}) for zoomed state.")
 
         try:
             self.bg = PhotoImage(file=IMAGE_PATH)
