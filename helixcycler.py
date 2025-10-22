@@ -1,11 +1,11 @@
 from tkinter import filedialog as fd
 from tkinter import PhotoImage
 import customtkinter
-from tc_send_code import HardwareController  # <-- Import class
-from protocol_manager import run_protocol, protocol_dict # <-- Import logic
+from tc_send_code import HardwareController 
+from protocol_manager import run_protocol, protocol_dict 
 import csv
 import threading
-import pathlib  # <-- For cross-platform paths
+import pathlib 
 
 # --- Setup base directory for assets ---
 BASE_DIR = pathlib.Path(__file__).parent
@@ -28,7 +28,6 @@ class App(customtkinter.CTk):
         self.state('zoomed')
         
         # --- Cross-platform asset loading ---
-        # self.iconbitmap(ICON_PATH) # Commented out, .ico is not cross-platform
         try:
             self.bg = PhotoImage(file=IMAGE_PATH)
         except Exception as e:
